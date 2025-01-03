@@ -41,7 +41,7 @@
 
     <!-- 添加简单的机器人模型 -->
     <model name="simple_robot">
-      <pose>1.0 0 0.15 0 0 0</pose>
+      <pose>3.5 0 0.15 0 0 3.14159</pose>
       <static>false</static>
       
       <!-- 机器人主体 -->
@@ -108,7 +108,7 @@
 
       <!-- 左前轮 -->
       <link name="front_left_wheel">
-        <pose>0.15 0.175 0.1 1.5707 0 0</pose>
+        <pose>0.15 0.175 0.1 0 0 0</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
@@ -146,7 +146,7 @@
 
       <!-- 右前轮 -->
       <link name="front_right_wheel">
-        <pose>0.15 -0.175 0.1 1.5707 0 0</pose>
+        <pose>0.15 -0.175 0.1 0 0 0</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
@@ -184,7 +184,7 @@
 
       <!-- 左后轮 -->
       <link name="rear_left_wheel">
-        <pose>-0.15 0.175 0.1 1.5707 0 0</pose>
+        <pose>-0.15 0.175 0.1 0 0 0</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
@@ -222,7 +222,7 @@
 
       <!-- 右后轮 -->
       <link name="rear_right_wheel">
-        <pose>-0.15 -0.175 0.1 1.5707 0 0</pose>
+        <pose>-0.15 -0.175 0.1 0 0 0</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
@@ -362,7 +362,7 @@
           </material>
         </visual>
       </link>
-      <pose>2.5 0 0.5 0 0 0</pose>
+      <pose>5.0 0 0.5 0 0 0</pose>
     </model>
 
     <!-- 添加环境光 -->
