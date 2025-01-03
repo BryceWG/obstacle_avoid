@@ -81,7 +81,7 @@
 
         <!-- 添加Kinect传感器 -->
         <sensor type="depth" name="kinect">
-          <pose>0.25 0 0.2 0 0 0</pose>
+          <pose>0.25 0 0.2 -1.57 0 -1.57</pose>
           <update_rate>20</update_rate>
           <camera>
             <horizontal_fov>1.047198</horizontal_fov>
