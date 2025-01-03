@@ -108,7 +108,7 @@
 
       <!-- 左前轮 -->
       <link name="front_left_wheel">
-        <pose>0.15 0.175 0.1 1.5708 0 0</pose>
+        <pose>0.15 0.175 0.1 0 0 1.5708</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
@@ -146,7 +146,7 @@
 
       <!-- 右前轮 -->
       <link name="front_right_wheel">
-        <pose>0.15 -0.175 0.1 1.5708 0 0</pose>
+        <pose>0.15 -0.175 0.1 0 0 1.5708</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
@@ -184,7 +184,7 @@
 
       <!-- 左后轮 -->
       <link name="rear_left_wheel">
-        <pose>-0.15 0.175 0.1 1.5708 0 0</pose>
+        <pose>-0.15 0.175 0.1 0 0 1.5708</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
@@ -222,7 +222,7 @@
 
       <!-- 右后轮 -->
       <link name="rear_right_wheel">
-        <pose>-0.15 -0.175 0.1 1.5708 0 0</pose>
+        <pose>-0.15 -0.175 0.1 0 0 1.5708</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
