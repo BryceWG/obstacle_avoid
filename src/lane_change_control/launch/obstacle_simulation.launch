@@ -12,6 +12,9 @@
     <!-- 启动robot_state_publisher -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
+    <!-- 启动joint_state_publisher -->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+
     <!-- 启动Gazebo仿真器 -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="world_name" value="$(find lane_change_control)/worlds/obstacle_world.world"/>

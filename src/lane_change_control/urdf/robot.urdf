@@ -73,6 +73,18 @@
     </visual>
   </link>
 
+  <!-- 障碍物 -->
+  <link name="obstacle">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 1.0"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+
   <!-- 相机关节 -->
   <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
@@ -110,5 +122,12 @@
     <child link="rear_right_wheel"/>
     <origin xyz="-0.15 -0.175 0" rpy="1.5708 0 0"/>
     <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- 障碍物关节（相对于base_link的固定变换） -->
+  <joint name="obstacle_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="obstacle"/>
+    <origin xyz="1.5 0 0.5" rpy="0 0 0"/>
   </joint>
 </robot> 
