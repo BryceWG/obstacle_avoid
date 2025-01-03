@@ -172,6 +172,6 @@
   <joint name="obstacle_joint" type="fixed">
     <parent link="base_link"/>
     <child link="obstacle"/>
-    <origin xyz="1.5 0 0.45" rpy="0 0 0"/>
+    <origin xyz="1.5 0 0.4" rpy="0 0 0"/>
   </joint>
 </robot> 
