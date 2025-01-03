@@ -7,6 +7,7 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
 #include <tf/transform_listener.h>
+#include <visualization_msgs/Marker.h>
 
 class LaneChangeController {
 public:
@@ -20,6 +21,7 @@ private:
     // 订阅者和发布者
     ros::Subscriber point_cloud_sub_;
     ros::Publisher cmd_vel_pub_;
+    ros::Publisher debug_pub_;    // 用于发布调试可视化信息
     
     // TF监听器
     tf::TransformListener tf_listener_;
@@ -38,6 +40,7 @@ private:
     bool detectObstacle(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
     void performLaneChange();
     void resumeNormalDriving();
+    void publishDebugMarker(bool obstacle_detected);  // 发布调试标记
 };
 
 #endif // LANE_CHANGE_CONTROLLER_H 
