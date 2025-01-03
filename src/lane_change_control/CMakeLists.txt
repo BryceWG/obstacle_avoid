@@ -32,4 +32,29 @@ add_executable(lane_change_node
 target_link_libraries(lane_change_node
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
+)
+
+# 安装目标
+install(TARGETS lane_change_node
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# 安装launch文件
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+
+# 安装worlds文件
+install(DIRECTORY worlds/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/worlds
+)
+
+# 安装rviz配置文件
+install(DIRECTORY rviz/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz
+)
+
+# 安装URDF文件
+install(DIRECTORY urdf/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/urdf
 ) 
