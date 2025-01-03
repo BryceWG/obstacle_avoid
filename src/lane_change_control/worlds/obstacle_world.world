@@ -47,6 +47,7 @@
       <!-- 机器人主体 -->
       <link name="base_link">
         <pose>0 0 0.1 0 0 0</pose>
+        <!-- 底盘碰撞体 -->
         <collision name="collision">
           <geometry>
             <box>
@@ -54,6 +55,7 @@
             </box>
           </geometry>
         </collision>
+        <!-- 底盘视觉模型 -->
         <visual name="visual">
           <geometry>
             <box>
@@ -67,21 +69,77 @@
             </script>
           </material>
         </visual>
-        <inertial>
-          <mass>5.0</mass>
-          <inertia>
-            <ixx>0.1</ixx>
-            <ixy>0</ixy>
-            <ixz>0</ixz>
-            <iyy>0.1</iyy>
-            <iyz>0</iyz>
-            <izz>0.1</izz>
-          </inertia>
-        </inertial>
 
-        <!-- 添加 Kinect 的视觉模型 -->
+        <!-- X轴指示器（红色） -->
+        <visual name="x_axis">
+          <pose>0.15 0 0 0 1.5708 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.01</radius>
+              <length>0.3</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Red</name>
+            </script>
+          </material>
+        </visual>
+
+        <!-- Y轴指示器（绿色） -->
+        <visual name="y_axis">
+          <pose>0 0.15 0 1.5708 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.01</radius>
+              <length>0.3</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Green</name>
+            </script>
+          </material>
+        </visual>
+
+        <!-- Z轴指示器（蓝色） -->
+        <visual name="z_axis">
+          <pose>0 0 0.15 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.01</radius>
+              <length>0.3</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Blue</name>
+            </script>
+          </material>
+        </visual>
+
+        <!-- 方向箭头（黄色） -->
+        <visual name="direction_arrow">
+          <pose>0.3 0 0.1 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.2 0.05 0.02</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Yellow</name>
+            </script>
+          </material>
+        </visual>
+
+        <!-- Kinect相机 -->
         <visual name="kinect_visual">
-          <pose>0.25 0 0.2 -1.57 0 -1.57</pose>
+          <pose>0.25 0 0.2 0 0 0</pose>
           <geometry>
             <box>
               <size>0.073 0.276 0.072</size>
@@ -95,7 +153,7 @@
           </material>
         </visual>
 
-        <!-- 添加Kinect传感器 -->
+        <!-- Kinect传感器 -->
         <sensor type="depth" name="kinect">
           <pose>0.25 0 0.2 0 0 0</pose>
           <update_rate>20</update_rate>
@@ -121,6 +179,18 @@
             <frameName>camera_link</frameName>
           </plugin>
         </sensor>
+
+        <inertial>
+          <mass>5.0</mass>
+          <inertia>
+            <ixx>0.1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.1</iyy>
+            <iyz>0</iyz>
+            <izz>0.1</izz>
+          </inertia>
+        </inertial>
       </link>
 
       <!-- 左前轮 -->

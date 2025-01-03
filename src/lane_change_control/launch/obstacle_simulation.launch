@@ -29,14 +29,15 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find lane_change_control)/rviz/obstacle_avoid.rviz" />
 
     <!-- 坐标系说明：
-         - X轴：红色，指向机器人前方
-         - Y轴：绿色，指向机器人左侧
-         - Z轴：蓝色，指向机器人上方
+         - X轴（红色）：指向机器人前方，表示前进方向
+         - Y轴（绿色）：指向机器人左侧，表示变道方向
+         - Z轴（蓝色）：指向机器人上方
+         - 黄色箭头：指示车头朝向
     -->
 
-    <!-- 发布静态TF变换 -->
+    <!-- 发布相机TF变换（相机朝向前方） -->
     <node pkg="tf" type="static_transform_publisher" name="base_to_camera" 
-        args="0.2 0 0.1 0 0 0 base_link camera_link 100" />
+        args="0.25 0 0.2 0 0 0 base_link camera_link 100" />
 
     <!-- 发布odom到base_link的TF变换 -->
     <node pkg="tf" type="static_transform_publisher" name="odom_to_base" 
