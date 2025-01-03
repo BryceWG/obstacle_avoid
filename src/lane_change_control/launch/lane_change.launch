@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- 加载参数 -->
+    <param name="obstacle_distance_threshold" value="1.0" />
+    <param name="safe_distance" value="0.5" />
+    <param name="linear_speed" value="0.2" />
+    <param name="angular_speed" value="0.2" />
+
+    <!-- 启动变道控制节点 -->
+    <node name="lane_change_controller" pkg="lane_change_control" type="lane_change_node" output="screen">
+    </node>
+</launch> 
