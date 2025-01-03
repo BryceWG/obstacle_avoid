@@ -106,9 +106,9 @@
         </sensor>
       </link>
 
-      <!-- 左轮 -->
-      <link name="left_wheel">
-        <pose>0 0.175 0.1 0 1.5707 1.5707</pose>
+      <!-- 左前轮 -->
+      <link name="front_left_wheel">
+        <pose>0.15 0.175 0.1 0 1.5707 1.5707</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
@@ -144,9 +144,9 @@
         </inertial>
       </link>
 
-      <!-- 右轮 -->
-      <link name="right_wheel">
-        <pose>0 -0.175 0.1 0 1.5707 1.5707</pose>
+      <!-- 右前轮 -->
+      <link name="front_right_wheel">
+        <pose>0.15 -0.175 0.1 0 1.5707 1.5707</pose>
         <collision name="collision">
           <geometry>
             <cylinder>
@@ -182,19 +182,113 @@
         </inertial>
       </link>
 
-      <!-- 左轮关节 -->
-      <joint type="revolute" name="left_wheel_joint">
+      <!-- 左后轮 -->
+      <link name="rear_left_wheel">
+        <pose>-0.15 0.175 0.1 0 1.5707 1.5707</pose>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.1</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.1</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Black</name>
+            </script>
+          </material>
+        </visual>
+        <inertial>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.01</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.01</iyy>
+            <iyz>0</iyz>
+            <izz>0.01</izz>
+          </inertia>
+        </inertial>
+      </link>
+
+      <!-- 右后轮 -->
+      <link name="rear_right_wheel">
+        <pose>-0.15 -0.175 0.1 0 1.5707 1.5707</pose>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.1</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.1</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Black</name>
+            </script>
+          </material>
+        </visual>
+        <inertial>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.01</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.01</iyy>
+            <iyz>0</iyz>
+            <izz>0.01</izz>
+          </inertia>
+        </inertial>
+      </link>
+
+      <!-- 左前轮关节 -->
+      <joint type="revolute" name="front_left_wheel_joint">
         <parent>base_link</parent>
-        <child>left_wheel</child>
+        <child>front_left_wheel</child>
         <axis>
           <xyz>0 1 0</xyz>
         </axis>
       </joint>
 
-      <!-- 右轮关节 -->
-      <joint type="revolute" name="right_wheel_joint">
+      <!-- 右前轮关节 -->
+      <joint type="revolute" name="front_right_wheel_joint">
         <parent>base_link</parent>
-        <child>right_wheel</child>
+        <child>front_right_wheel</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+        </axis>
+      </joint>
+
+      <!-- 左后轮关节 -->
+      <joint type="revolute" name="rear_left_wheel_joint">
+        <parent>base_link</parent>
+        <child>rear_left_wheel</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+        </axis>
+      </joint>
+
+      <!-- 右后轮关节 -->
+      <joint type="revolute" name="rear_right_wheel_joint">
+        <parent>base_link</parent>
+        <child>rear_right_wheel</child>
         <axis>
           <xyz>0 1 0</xyz>
         </axis>
@@ -203,8 +297,8 @@
       <!-- 差速驱动插件 -->
       <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
         <robotNamespace>/</robotNamespace>
-        <leftJoint>left_wheel_joint</leftJoint>
-        <rightJoint>right_wheel_joint</rightJoint>
+        <leftJoint>rear_left_wheel_joint</leftJoint>
+        <rightJoint>rear_right_wheel_joint</rightJoint>
         <wheelSeparation>0.35</wheelSeparation>
         <wheelDiameter>0.2</wheelDiameter>
         <torque>20</torque>
