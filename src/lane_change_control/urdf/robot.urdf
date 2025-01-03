@@ -1,5 +1,24 @@
 <?xml version="1.0"?>
 <robot name="simple_robot">
+  <!-- 道路平面 -->
+  <link name="road_plane">
+    <visual>
+      <geometry>
+        <box size="25.0 6.0 0.1"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.5 0.5 0.5 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- 道路平面关节 -->
+  <joint name="road_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="road_plane"/>
+    <origin xyz="2.5 0 -0.05" rpy="0 0 0"/>
+  </joint>
+
   <!-- 底盘 -->
   <link name="base_link">
     <visual>
@@ -11,12 +30,6 @@
       </material>
       <origin xyz="0 0 0.05"/>
     </visual>
-    <collision>
-      <geometry>
-        <box size="0.5 0.3 0.1"/>
-      </geometry>
-      <origin xyz="0 0 0.05"/>
-    </collision>
 
     <!-- X轴指示器（红色，指向前方） -->
     <visual name="x_axis">
@@ -85,11 +98,6 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision>
-      <geometry>
-        <cylinder radius="0.1" length="0.05"/>
-      </geometry>
-    </collision>
   </link>
 
   <!-- 右前轮 -->
@@ -102,11 +110,6 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision>
-      <geometry>
-        <cylinder radius="0.1" length="0.05"/>
-      </geometry>
-    </collision>
   </link>
 
   <!-- 左后轮 -->
@@ -119,11 +122,6 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision>
-      <geometry>
-        <cylinder radius="0.1" length="0.05"/>
-      </geometry>
-    </collision>
   </link>
 
   <!-- 右后轮 -->
@@ -136,11 +134,6 @@
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <collision>
-      <geometry>
-        <cylinder radius="0.1" length="0.05"/>
-      </geometry>
-    </collision>
   </link>
 
   <!-- 障碍物 -->
@@ -166,7 +159,7 @@
   <joint name="front_left_wheel_joint" type="continuous">
     <parent link="base_link"/>
     <child link="front_left_wheel"/>
-    <origin xyz="0.15 0.175 0.1" rpy="1.5708 0 0"/>
+    <origin xyz="0.15 0.175 0" rpy="1.5708 0 0"/>
     <axis xyz="0 0 1"/>
   </joint>
 
@@ -174,7 +167,7 @@
   <joint name="front_right_wheel_joint" type="continuous">
     <parent link="base_link"/>
     <child link="front_right_wheel"/>
-    <origin xyz="0.15 -0.175 0.1" rpy="1.5708 0 0"/>
+    <origin xyz="0.15 -0.175 0" rpy="1.5708 0 0"/>
     <axis xyz="0 0 1"/>
   </joint>
 
@@ -182,7 +175,7 @@
   <joint name="rear_left_wheel_joint" type="continuous">
     <parent link="base_link"/>
     <child link="rear_left_wheel"/>
-    <origin xyz="-0.15 0.175 0.1" rpy="1.5708 0 0"/>
+    <origin xyz="-0.15 0.175 0" rpy="1.5708 0 0"/>
     <axis xyz="0 0 1"/>
   </joint>
 
@@ -190,7 +183,7 @@
   <joint name="rear_right_wheel_joint" type="continuous">
     <parent link="base_link"/>
     <child link="rear_right_wheel"/>
-    <origin xyz="-0.15 -0.175 0.1" rpy="1.5708 0 0"/>
+    <origin xyz="-0.15 -0.175 0" rpy="1.5708 0 0"/>
     <axis xyz="0 0 1"/>
   </joint>
 
@@ -198,6 +191,6 @@
   <joint name="obstacle_joint" type="fixed">
     <parent link="base_link"/>
     <child link="obstacle"/>
-    <origin xyz="1.5 0 0" rpy="0 0 0"/>
+    <origin xyz="1.5 0 0.5" rpy="0 0 0"/>
   </joint>
 </robot> 
