@@ -89,7 +89,7 @@
   <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
     <child link="camera_link"/>
-    <origin xyz="0.25 0 0.2" rpy="-1.5708 0 -1.5708"/>
+    <origin xyz="0.25 0 0.2" rpy="0 0 0"/>
   </joint>
 
   <!-- 左前轮关节 -->
