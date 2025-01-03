@@ -10,19 +10,10 @@
         <arg name="debug" value="false"/>
     </include>
 
-    <!-- 加载机器人模型到参数服务器 -->
-    <param name="robot_description" command="$(find xacro)/xacro '$(find autolabor_description)/urdf/autolabor_pro1.urdf.xacro'" />
-
-    <!-- 在Gazebo中生成机器人模型 -->
-    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" 
-          args="-param robot_description -urdf -model autolabor_pro1 -x 0 -y 0 -z 0.1" />
-
-    <!-- 启动robot_state_publisher -->
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
-
-    <!-- 启动joint_state_publisher -->
-    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
-
     <!-- 启动rviz可视化 -->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find lane_change_control)/rviz/obstacle_avoid.rviz" />
+
+    <!-- 发布静态TF变换 -->
+    <node pkg="tf" type="static_transform_publisher" name="base_to_camera" 
+        args="0.2 0 0.1 0 0 0 base_link camera_link 100" />
 </launch> 
