@@ -79,6 +79,22 @@
           </inertia>
         </inertial>
 
+        <!-- 添加 Kinect 的视觉模型 -->
+        <visual name="kinect_visual">
+          <pose>0.25 0 0.2 -1.57 0 -1.57</pose>
+          <geometry>
+            <box>
+              <size>0.073 0.276 0.072</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Black</name>
+            </script>
+          </material>
+        </visual>
+
         <!-- 添加Kinect传感器 -->
         <sensor type="depth" name="kinect">
           <pose>0.25 0 0.2 -1.57 0 -1.57</pose>
