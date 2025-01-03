@@ -72,7 +72,7 @@
 
         <!-- X轴指示器（红色） -->
         <visual name="x_axis">
-          <pose>0.15 0 0 0 1.5708 0</pose>
+          <pose>0.15 0 0.05 0 1.5708 0</pose>
           <geometry>
             <cylinder>
               <radius>0.01</radius>
@@ -89,7 +89,7 @@
 
         <!-- Y轴指示器（绿色） -->
         <visual name="y_axis">
-          <pose>0 0.15 0 1.5708 0 0</pose>
+          <pose>0 0.15 0.05 1.5708 0 0</pose>
           <geometry>
             <cylinder>
               <radius>0.01</radius>
@@ -106,7 +106,7 @@
 
         <!-- Z轴指示器（蓝色） -->
         <visual name="z_axis">
-          <pose>0 0 0.15 0 0 0</pose>
+          <pose>0 0 0.05 0 0 0</pose>
           <geometry>
             <cylinder>
               <radius>0.01</radius>
