@@ -55,6 +55,7 @@ void LaneChangeController::pointCloudCallback(const sensor_msgs::PointCloud2::Co
 float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
     std::vector<float> valid_distances;
     int total_points = 0;
+    int filtered_ground = 0;
     int valid_points = 0;
     
     // 用于统计点的分布
@@ -73,10 +74,14 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     // 定义检测区域（相机坐标系）
     float min_x = -2.0;    // 对应全局-Y方向的范围
     float max_x = 2.0;     // 对应全局-Y方向的范围
-    float min_y = -2.0;    // 对应全局Z方向的范围（高度）
+    float min_y = -0.1;    // 对应全局Z方向的范围（高度），提高最小高度以过滤地面
     float max_y = 2.0;     // 对应全局Z方向的范围（高度）
     float min_z = 0.1;     // 对应全局X方向的最小距离
     float max_z = 5.0;     // 对应全局X方向的最大距离
+
+    // 地面点过滤参数
+    const float ground_height_threshold = -0.1;  // 低于此高度视为地面点
+    const float min_points_threshold = 1000;     // 最小有效点数阈值
     
     // 遍历点云
     for (const auto& point : cloud->points) {
@@ -84,6 +89,12 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
         
         // 基本有效性检查
         if (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z)) {
+            continue;
+        }
+
+        // 地面点过滤
+        if (point.y < ground_height_threshold) {
+            filtered_ground++;
             continue;
         }
 
@@ -117,8 +128,10 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     }
     
     // 输出详细的点云分布信息
-    ROS_INFO("Point Distribution Analysis:");
+    ROS_INFO("Point Distribution Analysis (Ground points filtered: %d):", filtered_ground);
     auto print_region_stats = [](const char* region_name, const PointStats& stats) {
+        if (stats.count < 1) return;  // 跳过空区域
+        
         ROS_INFO("%s region: %d points, distance range: %.2f to %.2f m", 
                 region_name, stats.count, 
                 stats.min_dist != std::numeric_limits<float>::max() ? stats.min_dist : 0,
@@ -132,7 +145,9 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
         
         ROS_INFO("Most common distances in %s region:", region_name);
         for (int i = 0; i < std::min(5, (int)hist_vec.size()); i++) {
-            ROS_INFO("  %.2f m: %d points", hist_vec[i].first, hist_vec[i].second);
+            if (hist_vec[i].second > 100) {  // 只显示数量超过100的点
+                ROS_INFO("  %.2f m: %d points", hist_vec[i].first, hist_vec[i].second);
+            }
         }
     };
     
@@ -143,17 +158,21 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     // 输出总体统计信息
     ROS_INFO("Point cloud stats - Total: %d, Valid: %d", total_points, valid_points);
     
-    // 如果没有有效点，返回-1表示无障碍物
-    if (valid_distances.empty()) {
-        ROS_INFO("No valid obstacles detected");
+    // 如果没有足够的有效点，返回-1表示无障碍物
+    if (valid_distances.size() < min_points_threshold) {
+        ROS_INFO("Insufficient valid points for obstacle detection");
         return -1;
     }
     
     // 计算最近的障碍物距离
-    float min_distance = *std::min_element(valid_distances.begin(), valid_distances.end());
-    ROS_INFO("Nearest obstacle at %.2f meters", min_distance);
+    // 使用百分位数而不是最小值，以减少噪声影响
+    std::sort(valid_distances.begin(), valid_distances.end());
+    int percentile_index = valid_distances.size() * 0.05;  // 使用5%分位数
+    float obstacle_distance = valid_distances[percentile_index];
+    ROS_INFO("Nearest obstacle at %.2f meters (5th percentile of %zu valid points)", 
+             obstacle_distance, valid_distances.size());
     
-    return min_distance;
+    return obstacle_distance;
 }
 
 void LaneChangeController::publishMotionCommand() {
