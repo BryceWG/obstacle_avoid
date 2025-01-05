@@ -57,6 +57,10 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     int total_points = 0;
     int valid_points = 0;
     
+    // 输出一些点的样本数据，帮助调试
+    ROS_INFO("Sample points (first 5 valid points):");
+    int sample_count = 0;
+    
     // 遍历点云
     for (const auto& point : cloud->points) {
         total_points++;
@@ -65,14 +69,26 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
         if (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z)) {
             continue;
         }
+
+        // 输出前5个有效点的坐标，帮助我们理解点云数据的结构
+        if (sample_count < 5) {
+            ROS_INFO("Point %d: x=%.3f, y=%.3f, z=%.3f", 
+                    sample_count, point.x, point.y, point.z);
+            sample_count++;
+        }
         
         // 检查点是否在感兴趣区域内
-        // 前方0.1-2米，左右0.3米，高度0.5米的区域
-        if (point.x > 0.1 && point.x < 2.0 && 
-            std::abs(point.y) < 0.3 && 
-            std::abs(point.z) < 0.5) {
+        // 注意：可能需要调整坐标轴
+        // 尝试检查所有轴的组合
+        float forward_dist = std::abs(point.z);  // 假设z轴是前向
+        float side_dist = std::abs(point.x);     // 假设x轴是横向
+        float height = std::abs(point.y);        // 假设y轴是高度
+        
+        if (forward_dist > 0.1 && forward_dist < 2.0 && 
+            side_dist < 0.3 && 
+            height < 0.5) {
             valid_points++;
-            valid_distances.push_back(point.x);
+            valid_distances.push_back(forward_dist);
         }
     }
     
@@ -81,6 +97,7 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     
     // 如果没有有效点，返回-1表示无障碍物
     if (valid_distances.empty()) {
+        ROS_INFO("No valid obstacles detected");
         return -1;
     }
     
