@@ -38,7 +38,7 @@ private:
     void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg);
     
     // 辅助函数
-    bool detectObstacle(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
+    float detectObstacle(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
     void publishMotionCommand();
     void publishDebugMarker(bool obstacle_detected);
 };
