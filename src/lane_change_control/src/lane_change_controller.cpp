@@ -62,6 +62,7 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
         int count = 0;
         float min_dist = std::numeric_limits<float>::max();
         float max_dist = -std::numeric_limits<float>::max();
+        std::map<float, int> distance_histogram;  // 用于统计距离分布
     };
     
     // 划分不同区域统计点的分布
@@ -87,18 +88,23 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
         }
 
         // 统计不同区域的点
+        PointStats* current_stats = nullptr;
         if (std::abs(point.x) < 0.3) {  // 中心区域
-            center_stats.count++;
-            center_stats.min_dist = std::min(center_stats.min_dist, point.z);
-            center_stats.max_dist = std::max(center_stats.max_dist, point.z);
+            current_stats = &center_stats;
         } else if (point.x < -0.3) {    // 左侧区域
-            left_stats.count++;
-            left_stats.min_dist = std::min(left_stats.min_dist, point.z);
-            left_stats.max_dist = std::max(left_stats.max_dist, point.z);
+            current_stats = &left_stats;
         } else {                         // 右侧区域
-            right_stats.count++;
-            right_stats.min_dist = std::min(right_stats.min_dist, point.z);
-            right_stats.max_dist = std::max(right_stats.max_dist, point.z);
+            current_stats = &right_stats;
+        }
+        
+        if (current_stats) {
+            current_stats->count++;
+            current_stats->min_dist = std::min(current_stats->min_dist, point.z);
+            current_stats->max_dist = std::max(current_stats->max_dist, point.z);
+            
+            // 将距离四舍五入到厘米级别
+            float rounded_dist = std::round(point.z * 100) / 100;
+            current_stats->distance_histogram[rounded_dist]++;
         }
 
         // 检查点是否在感兴趣区域内
@@ -112,18 +118,27 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     
     // 输出详细的点云分布信息
     ROS_INFO("Point Distribution Analysis:");
-    ROS_INFO("Center region: %d points, distance range: %.2f to %.2f m",
-             center_stats.count,
-             center_stats.min_dist != std::numeric_limits<float>::max() ? center_stats.min_dist : 0,
-             center_stats.max_dist != -std::numeric_limits<float>::max() ? center_stats.max_dist : 0);
-    ROS_INFO("Left region: %d points, distance range: %.2f to %.2f m",
-             left_stats.count,
-             left_stats.min_dist != std::numeric_limits<float>::max() ? left_stats.min_dist : 0,
-             left_stats.max_dist != -std::numeric_limits<float>::max() ? left_stats.max_dist : 0);
-    ROS_INFO("Right region: %d points, distance range: %.2f to %.2f m",
-             right_stats.count,
-             right_stats.min_dist != std::numeric_limits<float>::max() ? right_stats.min_dist : 0,
-             right_stats.max_dist != -std::numeric_limits<float>::max() ? right_stats.max_dist : 0);
+    auto print_region_stats = [](const char* region_name, const PointStats& stats) {
+        ROS_INFO("%s region: %d points, distance range: %.2f to %.2f m", 
+                region_name, stats.count, 
+                stats.min_dist != std::numeric_limits<float>::max() ? stats.min_dist : 0,
+                stats.max_dist != -std::numeric_limits<float>::max() ? stats.max_dist : 0);
+        
+        // 输出距离直方图中最频繁的几个值
+        std::vector<std::pair<float, int>> hist_vec(stats.distance_histogram.begin(), 
+                                                   stats.distance_histogram.end());
+        std::sort(hist_vec.begin(), hist_vec.end(), 
+                 [](const auto& a, const auto& b) { return a.second > b.second; });
+        
+        ROS_INFO("Most common distances in %s region:", region_name);
+        for (int i = 0; i < std::min(5, (int)hist_vec.size()); i++) {
+            ROS_INFO("  %.2f m: %d points", hist_vec[i].first, hist_vec[i].second);
+        }
+    };
+    
+    print_region_stats("Center", center_stats);
+    print_region_stats("Left", left_stats);
+    print_region_stats("Right", right_stats);
     
     // 输出总体统计信息
     ROS_INFO("Point cloud stats - Total: %d, Valid: %d", total_points, valid_points);
