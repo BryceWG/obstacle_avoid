@@ -57,9 +57,25 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     int total_points = 0;
     int valid_points = 0;
     
-    // 输出一些点的样本数据，帮助调试
-    ROS_INFO("Sample points (first 5 valid points):");
-    int sample_count = 0;
+    // 用于统计点的分布
+    struct PointStats {
+        int count = 0;
+        float min_dist = std::numeric_limits<float>::max();
+        float max_dist = -std::numeric_limits<float>::max();
+    };
+    
+    // 划分不同区域统计点的分布
+    PointStats center_stats;   // 中心区域
+    PointStats left_stats;     // 左侧区域
+    PointStats right_stats;    // 右侧区域
+    
+    // 定义检测区域（相机坐标系）
+    float min_x = -2.0;    // 对应全局-Y方向的范围
+    float max_x = 2.0;     // 对应全局-Y方向的范围
+    float min_y = -2.0;    // 对应全局Z方向的范围（高度）
+    float max_y = 2.0;     // 对应全局Z方向的范围（高度）
+    float min_z = 0.1;     // 对应全局X方向的最小距离
+    float max_z = 5.0;     // 对应全局X方向的最大距离
     
     // 遍历点云
     for (const auto& point : cloud->points) {
@@ -70,29 +86,46 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
             continue;
         }
 
-        // 输出前5个有效点的坐标，帮助我们理解点云数据的结构
-        if (sample_count < 5) {
-            ROS_INFO("Point %d: x=%.3f, y=%.3f, z=%.3f", 
-                    sample_count, point.x, point.y, point.z);
-            sample_count++;
+        // 统计不同区域的点
+        if (std::abs(point.x) < 0.3) {  // 中心区域
+            center_stats.count++;
+            center_stats.min_dist = std::min(center_stats.min_dist, point.z);
+            center_stats.max_dist = std::max(center_stats.max_dist, point.z);
+        } else if (point.x < -0.3) {    // 左侧区域
+            left_stats.count++;
+            left_stats.min_dist = std::min(left_stats.min_dist, point.z);
+            left_stats.max_dist = std::max(left_stats.max_dist, point.z);
+        } else {                         // 右侧区域
+            right_stats.count++;
+            right_stats.min_dist = std::min(right_stats.min_dist, point.z);
+            right_stats.max_dist = std::max(right_stats.max_dist, point.z);
         }
-        
+
         // 检查点是否在感兴趣区域内
-        // 注意：可能需要调整坐标轴
-        // 尝试检查所有轴的组合
-        float forward_dist = std::abs(point.z);  // 假设z轴是前向
-        float side_dist = std::abs(point.x);     // 假设x轴是横向
-        float height = std::abs(point.y);        // 假设y轴是高度
-        
-        if (forward_dist > 0.1 && forward_dist < 2.0 && 
-            side_dist < 0.3 && 
-            height < 0.5) {
+        if (point.x > min_x && point.x < max_x &&     // 左右范围检查
+            point.y > min_y && point.y < max_y &&     // 高度范围检查
+            point.z > min_z && point.z < max_z) {     // 前向距离检查
             valid_points++;
-            valid_distances.push_back(forward_dist);
+            valid_distances.push_back(point.z);
         }
     }
     
-    // 输出点云统计信息
+    // 输出详细的点云分布信息
+    ROS_INFO("Point Distribution Analysis:");
+    ROS_INFO("Center region: %d points, distance range: %.2f to %.2f m",
+             center_stats.count,
+             center_stats.min_dist != std::numeric_limits<float>::max() ? center_stats.min_dist : 0,
+             center_stats.max_dist != -std::numeric_limits<float>::max() ? center_stats.max_dist : 0);
+    ROS_INFO("Left region: %d points, distance range: %.2f to %.2f m",
+             left_stats.count,
+             left_stats.min_dist != std::numeric_limits<float>::max() ? left_stats.min_dist : 0,
+             left_stats.max_dist != -std::numeric_limits<float>::max() ? left_stats.max_dist : 0);
+    ROS_INFO("Right region: %d points, distance range: %.2f to %.2f m",
+             right_stats.count,
+             right_stats.min_dist != std::numeric_limits<float>::max() ? right_stats.min_dist : 0,
+             right_stats.max_dist != -std::numeric_limits<float>::max() ? right_stats.max_dist : 0);
+    
+    // 输出总体统计信息
     ROS_INFO("Point cloud stats - Total: %d, Valid: %d", total_points, valid_points);
     
     // 如果没有有效点，返回-1表示无障碍物
