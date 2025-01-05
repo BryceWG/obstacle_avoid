@@ -32,15 +32,15 @@ private:
     double linear_speed_;                // 线速度
     double angular_speed_;               // 角速度
     bool changing_lane_;                 // 变道状态标志
+    ros::Time start_time_;              // 变道开始时间
     
     // 回调函数
     void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg);
     
     // 辅助函数
     bool detectObstacle(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
-    void performLaneChange();
-    void resumeNormalDriving();
-    void publishDebugMarker(bool obstacle_detected);  // 发布调试标记
+    void publishMotionCommand();
+    void publishDebugMarker(bool obstacle_detected);
 };
 
 #endif // LANE_CHANGE_CONTROLLER_H 
