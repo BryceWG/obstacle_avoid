@@ -418,9 +418,8 @@
         <wheelTorque>20</wheelTorque>
         <odometrySource>world</odometrySource>
         <updateRate>50</updateRate>
-        <!-- 添加同步控制参数 -->
         <legacyMode>false</legacyMode>
-        <rosDebugLevel>Debug</rosDebugLevel>
+        <rosDebugLevel>Error</rosDebugLevel>
       </plugin>
     </model>
 

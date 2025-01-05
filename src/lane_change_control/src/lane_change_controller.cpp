@@ -60,53 +60,48 @@ void LaneChangeController::pointCloudCallback(const sensor_msgs::PointCloud2::Co
 }
 
 bool LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+    // 添加点云大小的调试信息
+    ROS_INFO("Point cloud size: %lu points", cloud->points.size());
+    
+    // 记录最近的障碍物点
+    float min_x = obstacle_distance_threshold_;
+    bool found = false;
+    
     // 检查前方区域是否有障碍物
     for (const auto& point : cloud->points) {
+        // 过滤无效点
+        if (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z)) {
+            continue;
+        }
+        
         // 只检查前方一定范围内的点
         if (point.x > 0 && point.x < obstacle_distance_threshold_ &&
             std::abs(point.y) < 0.3 && // 考虑车道宽度
             std::abs(point.z) < 1.0) {  // 考虑高度范围
-            ROS_INFO("Obstacle detected at: x=%.2f m (threshold: %.2f m)", 
-                    point.x, obstacle_distance_threshold_);
-            return true;
+            
+            if (point.x < min_x) {
+                min_x = point.x;
+                found = true;
+            }
         }
     }
+    
+    if (found) {
+        ROS_INFO("Nearest obstacle detected at: x=%.2f m (threshold: %.2f m)", min_x, obstacle_distance_threshold_);
+        return true;
+    }
+    
     return false;
 }
 
 void LaneChangeController::publishMotionCommand() {
     geometry_msgs::Twist cmd;
-    static ros::Time last_log_time = ros::Time::now();  // 用于控制日志输出频率
+    static ros::Time last_log_time = ros::Time::now();
     
-    if (changing_lane_) {
-        // 计算变道过程中的时间
-        double elapsed_time = (ros::Time::now() - start_time_).toSec();
-        
-        if (elapsed_time < 3.0) {  // 变道过程持续3秒
-            // 前进的同时向左偏移
-            cmd.linear.x = linear_speed_;
-            cmd.linear.y = 0.3;  // 直接设置横向速度
-            
-            // 每0.5秒输出一次日志
-            if ((ros::Time::now() - last_log_time).toSec() > 0.5) {
-                ROS_INFO("Motion Status: LANE CHANGING");
-                ROS_INFO("Time: %.2f/3.00s, Command: forward=%.2f m/s, left=%.2f m/s", 
-                        elapsed_time, cmd.linear.x, cmd.linear.y);
-                last_log_time = ros::Time::now();
-            }
-        } else {
-            // 变道完成，恢复直行
-            changing_lane_ = false;
-            cmd.linear.x = linear_speed_;
-            cmd.linear.y = 0.0;
-            ROS_INFO("Motion Status: LANE CHANGE COMPLETED");
-            ROS_INFO("Command: forward=%.2f m/s, left=%.2f m/s", cmd.linear.x, cmd.linear.y);
-            publishDebugMarker(false);
-        }
-    } else {
+    if (!changing_lane_) {
         // 正常直行
         cmd.linear.x = linear_speed_;
-        cmd.linear.y = 0.0;
+        cmd.angular.z = 0.0;
         
         // 每1秒输出一次日志
         if ((ros::Time::now() - last_log_time).toSec() > 1.0) {
@@ -114,13 +109,44 @@ void LaneChangeController::publishMotionCommand() {
             ROS_INFO("Command: forward=%.2f m/s", cmd.linear.x);
             last_log_time = ros::Time::now();
         }
+    } else {
+        // 计算变道过程中的时间
+        double elapsed_time = (ros::Time::now() - start_time_).toSec();
+        
+        if (elapsed_time < 3.0) {  // 变道过程持续3秒
+            // 使用差速驱动实现变道
+            double phase = elapsed_time / 3.0;  // 0到1的变化
+            
+            // 使用正弦函数使转向更平滑
+            double turn_rate = sin(phase * M_PI) * angular_speed_;
+            
+            cmd.linear.x = linear_speed_;
+            cmd.angular.z = turn_rate;  // 正值表示向左转
+            
+            // 每0.5秒输出一次日志
+            if ((ros::Time::now() - last_log_time).toSec() > 0.5) {
+                ROS_INFO("Motion Status: LANE CHANGING (%.0f%%)", phase * 100);
+                ROS_INFO("Command: forward=%.2f m/s, turn_rate=%.2f rad/s", 
+                        cmd.linear.x, cmd.angular.z);
+                last_log_time = ros::Time::now();
+            }
+        } else {
+            // 变道完成，恢复直行
+            changing_lane_ = false;
+            cmd.linear.x = linear_speed_;
+            cmd.angular.z = 0.0;
+            ROS_INFO("Motion Status: LANE CHANGE COMPLETED");
+            ROS_INFO("Command: forward=%.2f m/s, turn_rate=%.2f rad/s", 
+                    cmd.linear.x, cmd.angular.z);
+            publishDebugMarker(false);
+        }
     }
     
     // 确保其他速度分量为0
+    cmd.linear.y = 0.0;  // 不再使用横向速度
     cmd.linear.z = 0.0;
     cmd.angular.x = 0.0;
     cmd.angular.y = 0.0;
-    cmd.angular.z = 0.0;
     
     cmd_vel_pub_.publish(cmd);
 }
