@@ -6,7 +6,7 @@ LaneChangeController::LaneChangeController() : changing_lane_(false) {
     // 从参数服务器获取参数，如果没有设置则使用默认值
     nh_.param("obstacle_distance_threshold", obstacle_distance_threshold_, 1.0);
     nh_.param("safe_distance", safe_distance_, 0.5);
-    nh_.param("linear_speed", linear_speed_, 0.5);  // 增加默认速度
+    nh_.param("linear_speed", linear_speed_, 0.2);  // 降低默认速度
     nh_.param("angular_speed", angular_speed_, 0.2);
 
     // 订阅Kinect点云数据
@@ -21,6 +21,8 @@ LaneChangeController::LaneChangeController() : changing_lane_(false) {
 
     // 初始化起始时间
     start_time_ = ros::Time::now();
+    
+    ROS_INFO("Lane Change Controller initialized");
 }
 
 LaneChangeController::~LaneChangeController() {
@@ -30,26 +32,17 @@ LaneChangeController::~LaneChangeController() {
 }
 
 void LaneChangeController::pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg) {
-    static ros::Time last_detection_time = ros::Time::now();
-    
     // 将ROS消息转换为PCL点云
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(*cloud_msg, *cloud);
 
     // 检测前方障碍物
-    bool obstacle_detected = detectObstacle(cloud);
+    float obstacle_distance = detectObstacle(cloud);
     
-    // 每0.5秒输出一次检测状态
-    if ((ros::Time::now() - last_detection_time).toSec() > 0.5) {
-        ROS_INFO("Detection Status: %s", 
-                obstacle_detected ? "OBSTACLE DETECTED" : "NO OBSTACLE");
-        last_detection_time = ros::Time::now();
-    }
-
-    if (obstacle_detected) {
+    // 根据障碍物距离决定行为
+    if (obstacle_distance > 0 && obstacle_distance < obstacle_distance_threshold_) {
         if (!changing_lane_) {
-            ROS_INFO("=== Starting Lane Change Maneuver ===");
-            publishDebugMarker(true);
+            ROS_INFO("Obstacle detected at %.2f meters, starting lane change", obstacle_distance);
             start_time_ = ros::Time::now();
             changing_lane_ = true;
         }
@@ -59,91 +52,78 @@ void LaneChangeController::pointCloudCallback(const sensor_msgs::PointCloud2::Co
     publishMotionCommand();
 }
 
-bool LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
-    // 添加点云大小的调试信息
-    ROS_INFO("Point cloud size: %lu points", cloud->points.size());
+float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+    std::vector<float> valid_distances;
+    int total_points = 0;
+    int valid_points = 0;
     
-    // 记录最近的障碍物点
-    float min_x = obstacle_distance_threshold_;
-    bool found = false;
-    
-    // 检查前方区域是否有障碍物
+    // 遍历点云
     for (const auto& point : cloud->points) {
-        // 过滤无效点
+        total_points++;
+        
+        // 基本有效性检查
         if (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z)) {
             continue;
         }
         
-        // 只检查前方一定范围内的点
-        if (point.x > 0 && point.x < obstacle_distance_threshold_ &&
-            std::abs(point.y) < 0.3 && // 考虑车道宽度
-            std::abs(point.z) < 1.0) {  // 考虑高度范围
-            
-            if (point.x < min_x) {
-                min_x = point.x;
-                found = true;
-            }
+        // 检查点是否在感兴趣区域内
+        // 前方0.1-2米，左右0.3米，高度0.5米的区域
+        if (point.x > 0.1 && point.x < 2.0 && 
+            std::abs(point.y) < 0.3 && 
+            std::abs(point.z) < 0.5) {
+            valid_points++;
+            valid_distances.push_back(point.x);
         }
     }
     
-    if (found) {
-        ROS_INFO("Nearest obstacle detected at: x=%.2f m (threshold: %.2f m)", min_x, obstacle_distance_threshold_);
-        return true;
+    // 输出点云统计信息
+    ROS_INFO("Point cloud stats - Total: %d, Valid: %d", total_points, valid_points);
+    
+    // 如果没有有效点，返回-1表示无障碍物
+    if (valid_distances.empty()) {
+        return -1;
     }
     
-    return false;
+    // 计算最近的障碍物距离
+    float min_distance = *std::min_element(valid_distances.begin(), valid_distances.end());
+    ROS_INFO("Nearest obstacle at %.2f meters", min_distance);
+    
+    return min_distance;
 }
 
 void LaneChangeController::publishMotionCommand() {
     geometry_msgs::Twist cmd;
-    static ros::Time last_log_time = ros::Time::now();
     
     if (!changing_lane_) {
         // 正常直行
         cmd.linear.x = linear_speed_;
         cmd.angular.z = 0.0;
-        
-        // 每1秒输出一次日志
-        if ((ros::Time::now() - last_log_time).toSec() > 1.0) {
-            ROS_INFO("Motion Status: NORMAL DRIVING");
-            ROS_INFO("Command: forward=%.2f m/s", cmd.linear.x);
-            last_log_time = ros::Time::now();
-        }
     } else {
         // 计算变道过程中的时间
         double elapsed_time = (ros::Time::now() - start_time_).toSec();
         
         if (elapsed_time < 3.0) {  // 变道过程持续3秒
-            // 使用差速驱动实现变道
-            double phase = elapsed_time / 3.0;  // 0到1的变化
-            
             // 使用正弦函数使转向更平滑
+            double phase = elapsed_time / 3.0;  // 0到1的变化
             double turn_rate = sin(phase * M_PI) * angular_speed_;
             
-            cmd.linear.x = linear_speed_;
-            cmd.angular.z = turn_rate;  // 正值表示向左转
+            // 在转向时适当降低前进速度
+            cmd.linear.x = linear_speed_ * 0.8;  // 降低到80%的速度
+            cmd.angular.z = turn_rate;
             
-            // 每0.5秒输出一次日志
-            if ((ros::Time::now() - last_log_time).toSec() > 0.5) {
-                ROS_INFO("Motion Status: LANE CHANGING (%.0f%%)", phase * 100);
-                ROS_INFO("Command: forward=%.2f m/s, turn_rate=%.2f rad/s", 
-                        cmd.linear.x, cmd.angular.z);
-                last_log_time = ros::Time::now();
-            }
+            ROS_INFO("Lane change: %.0f%%, speed=%.2f m/s, turn=%.2f rad/s", 
+                    phase * 100, cmd.linear.x, cmd.angular.z);
         } else {
-            // 变道完成，恢复直行
+            // 变道完成
             changing_lane_ = false;
             cmd.linear.x = linear_speed_;
             cmd.angular.z = 0.0;
-            ROS_INFO("Motion Status: LANE CHANGE COMPLETED");
-            ROS_INFO("Command: forward=%.2f m/s, turn_rate=%.2f rad/s", 
-                    cmd.linear.x, cmd.angular.z);
-            publishDebugMarker(false);
+            ROS_INFO("Lane change completed");
         }
     }
     
     // 确保其他速度分量为0
-    cmd.linear.y = 0.0;  // 不再使用横向速度
+    cmd.linear.y = 0.0;
     cmd.linear.z = 0.0;
     cmd.angular.x = 0.0;
     cmd.angular.y = 0.0;
