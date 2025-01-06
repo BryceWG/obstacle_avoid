@@ -4,7 +4,7 @@
     <param name="obstacle_distance_threshold" value="1.0" />
     <param name="safe_distance" value="0.5" />
     <param name="linear_speed" value="0.2" />
-    <param name="angular_speed" value="0.2" />
+    <param name="angular_speed" value="0.5" />
 
     <!-- 加载机器人URDF模型到参数服务器 -->
     <param name="robot_description" textfile="$(find lane_change_control)/urdf/robot.urdf" />
