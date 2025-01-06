@@ -81,7 +81,7 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     float max_z = 5.0;     // 对应全局X方向的最大距离
 
     // 地面点过滤参数（注意：相机Y轴对应全局-Z轴）
-    const float ground_height_threshold = 1.0;  // 高于此高度（相机坐标系中的y值）视为地面点
+    const float ground_height_threshold = -1.0;  // 低于此高度（相机坐标系中的Y值）视为地面点
     const float min_points_threshold = 1000;    // 最小有效点数阈值
     
     // 遍历点云
@@ -93,8 +93,8 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
             continue;
         }
 
-        // 地面点过滤（相机Y轴对应全局-Z轴，所以大于阈值的是地面点）
-        if (point.y > ground_height_threshold) {
+        // 地面点过滤（相机Y轴对应全局-Z轴，所以小于阈值的是地面点）
+        if (point.y < ground_height_threshold) {
             filtered_ground++;
             continue;
         }
@@ -113,21 +113,22 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
             current_stats->count++;
             current_stats->min_dist = std::min(current_stats->min_dist, point.z);
             current_stats->max_dist = std::max(current_stats->max_dist, point.z);
-            current_stats->min_height = std::min(current_stats->min_height, -point.y);  // 注意：取负值转换到全局Z轴
-            current_stats->max_height = std::max(current_stats->max_height, -point.y);  // 注意：取负值转换到全局Z轴
+            // 注意：这里的height是相机坐标系的Y值，对应全局-Z轴
+            current_stats->min_height = std::min(current_stats->min_height, -point.y);  // 转换为全局坐标系的Z值
+            current_stats->max_height = std::max(current_stats->max_height, -point.y);  // 转换为全局坐标系的Z值
             
             // 将距离四舍五入到厘米级别
             float rounded_dist = std::round(point.z * 100) / 100;
             current_stats->distance_histogram[rounded_dist]++;
             
-            // 将高度四舍五入到厘米级别（注意：取负值转换到全局Z轴）
-            float rounded_height = std::round(-point.y * 100) / 100;
+            // 将高度四舍五入到厘米级别（注意符号转换）
+            float rounded_height = std::round(-point.y * 100) / 100;  // 转换为全局坐标系的Z值
             current_stats->height_histogram[rounded_height]++;
         }
 
         // 检查点是否在感兴趣区域内
         if (point.x > min_x && point.x < max_x &&     // 左右范围检查
-            point.y < ground_height_threshold &&       // 高度范围检查（过滤地面点）
+            point.y > ground_height_threshold &&       // 高度范围检查（过滤地面点）
             point.z > min_z && point.z < max_z) {     // 前向距离检查
             valid_points++;
             valid_distances.push_back(point.z);
