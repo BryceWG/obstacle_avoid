@@ -3,7 +3,7 @@
 LaneChangeController::LaneChangeController() : changing_lane_(false), detection_count_(0), last_detection_(false) {
     // 从参数服务器获取参数，如果没有设置则使用默认值
     nh_.param("obstacle_threshold", obstacle_threshold_, 1000.0);  // 默认2米
-    nh_.param("linear_speed", linear_speed_, 0.3);
+    nh_.param("linear_speed", linear_speed_, 0.2);
     nh_.param("angular_speed", angular_speed_, 0.5);
 
     // 订阅Kinect深度图像
@@ -33,13 +33,22 @@ void LaneChangeController::depthCallback(const sensor_msgs::ImageConstPtr& depth
         return;
     }
 
+    if (!depth_msg) {
+        ROS_ERROR("Received null depth message");
+        return;
+    }
+    if (cv_ptr->image.empty()) {
+        ROS_ERROR("Empty depth image");
+        return;
+    }
+
     // 检测前方障碍物
     bool current_detection = detectObstacle(cv_ptr->image);
     
     // 更新连续检测计数
-    if (current_detection && last_detection_) {
+    if (current_detection) {
         detection_count_++;
-    } else if (!current_detection) {
+    } else {
         detection_count_ = 0;
     }
     last_detection_ = current_detection;
@@ -127,5 +136,4 @@ void LaneChangeController::publishMotionCommand() {
     
     // 发布速度命令
     cmd_vel_pub_.publish(cmd);
-} 
 } 
