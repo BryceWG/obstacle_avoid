@@ -158,6 +158,7 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     auto print_region_stats = [](const char* region_name, const PointStats& stats) {
         if (stats.count < 1) return;  // 跳过空区域
         
+        /* 注释掉详细的区域统计信息
         ROS_INFO("%s region: %d points, distance range: %.2f to %.2f m, height range: %.2f to %.2f m", 
             region_name, stats.count, 
             (stats.min_dist != std::numeric_limits<float>::max()) ? stats.min_dist : 0,
@@ -190,6 +191,7 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
                 ROS_INFO("  %.2f m: %d points", height_hist_vec[i].first, height_hist_vec[i].second);
             }
         }
+        */
     };
     
     print_region_stats("Center", center_stats);
