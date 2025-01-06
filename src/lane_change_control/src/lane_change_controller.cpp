@@ -244,14 +244,21 @@ void LaneChangeController::publishMotionCommand() {
             }
             
             // 获取当前位置
-            gazebo_msgs::GetModelState get_state;
-            get_state.model_name = "simple_robot";
-            get_state.reference_frame = "world";
+            gazebo_msgs::GetModelState get_state_srv;
+            get_state_srv.request.model_name = "simple_robot";
+            get_state_srv.request.relative_entity_name = "world";
             
             // 设置新的位姿
             gazebo_msgs::ModelState model_state;
             model_state.model_name = "simple_robot";
-            model_state.pose.position.x = 3.5 + elapsed_time * linear_speed_;  // 保持前进
+            
+            // 如果成功获取当前状态，使用当前的x位置
+            if (get_state_client_.call(get_state_srv) && get_state_srv.response.success) {
+                model_state.pose.position.x = get_state_srv.response.pose.position.x + linear_speed_ * 0.02;  // 每次更新向前移动
+            } else {
+                model_state.pose.position.x = 3.5 + elapsed_time * linear_speed_;  // 如果获取失败，使用估计位置
+            }
+            
             model_state.pose.position.y = y_offset;  // 左右偏移
             model_state.pose.position.z = 0.1;  // 保持原有高度
             
