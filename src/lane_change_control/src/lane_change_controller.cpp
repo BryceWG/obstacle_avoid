@@ -229,24 +229,24 @@ void LaneChangeController::publishMotionCommand() {
         // 计算变道过程中的时间
         double elapsed_time = (ros::Time::now() - start_time_).toSec();
         
-        if (elapsed_time < 3.5) {  // 延长变道时间到3.5秒，增加过渡时间
+        if (elapsed_time < 4.5) {  // 延长变道时间到4.5秒，增加过渡时间
             // 使用正弦函数使转向更平滑
-            double phase = elapsed_time / 3.5;  // 0到1的变化
+            double phase = elapsed_time / 4.5;  // 0到1的变化
             double y_offset = 0.0;  // Y方向偏移量
             
-            if (elapsed_time < 1.5) {
+            if (elapsed_time < 2.0) {
                 // 第一阶段：左转并向左移动
-                current_yaw_ = 0.3 * sin(phase * M_PI);  // 最大转向角约17度
-                y_offset = 0.5 * sin(phase * M_PI);  // 最大左偏0.5米
-            } else if (elapsed_time < 3.0) {
+                current_yaw_ = 0.35 * sin(phase * M_PI);  // 最大转向角约17度
+                y_offset = 0.6 * sin(phase * M_PI);  // 最大左偏0.6米
+            } else if (elapsed_time < 4.0) {
                 // 第二阶段：右转回正
-                double phase2 = (elapsed_time - 1.5) / 1.5;  // 0到1的变化
-                current_yaw_ = 0.3 * sin(M_PI * (1 - phase2));  // 从最大角度转回0
-                y_offset = 0.5;  // 保持左偏0.5米
+                double phase2 = (elapsed_time - 2.0) / 2.0;  // 0到1的变化
+                current_yaw_ = 0.35 * sin(M_PI * (1 - phase2));  // 从最大角度转回0
+                y_offset = 0.6;  // 保持左偏0.6米
             } else {
-                // 第三阶段（3.0-3.5秒）：保持位置和朝向，只更新前进距离
+                // 第三阶段（4.0-4.5秒）：保持位置和朝向，只更新前进距离
                 current_yaw_ = 0.0;
-                y_offset = 0.5;
+                y_offset = 0.6;
             }
             
             // 获取当前位置
@@ -262,14 +262,14 @@ void LaneChangeController::publishMotionCommand() {
             if (get_state_client_.call(get_state_srv) && get_state_srv.response.success) {
                 model_state.pose.position.x = get_state_srv.response.pose.position.x + linear_speed_ * 0.02;  // 每次更新向前移动
                 model_state.pose.position.y = get_state_srv.response.pose.position.y;  // 保持当前的y位置
-                if (elapsed_time >= 3.0) {
+                if (elapsed_time >= 4.5) {
                     // 在过渡阶段保持最后的y位置
-                    model_state.pose.position.y = 0.5;
+                    model_state.pose.position.y = 0.6;
                 } else {
                     model_state.pose.position.y = y_offset;
                 }
             } else {
-                model_state.pose.position.x = 3.5 + elapsed_time * linear_speed_;  // 如果获取失败，使用估计位置
+                model_state.pose.position.x = 4.5 + elapsed_time * linear_speed_;  // 如果获取失败，使用估计位置
                 model_state.pose.position.y = y_offset;
             }
             
