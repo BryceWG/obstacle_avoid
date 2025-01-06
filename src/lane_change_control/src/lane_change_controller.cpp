@@ -81,7 +81,7 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     float max_z = 5.0;     // 对应全局X方向的最大距离
 
     // 地面点过滤参数（注意：相机Y轴对应全局-Z轴）
-    const float ground_height_threshold = -1.0;  // 低于此高度（相机坐标系中的Y值）视为地面点
+    const float ground_height_threshold = -0.2;  // 低于此高度（相机坐标系中的Y值）视为地面点
     const float min_points_threshold = 1000;    // 最小有效点数阈值
     
     // 遍历点云
