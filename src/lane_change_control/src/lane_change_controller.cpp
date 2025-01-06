@@ -77,12 +77,14 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     // 定义检测区域（相机坐标系）
     float min_x = -2.0;    // 对应全局-Y方向的范围
     float max_x = 2.0;     // 对应全局-Y方向的范围
+    float min_y = -0.1;    // 对应全局Z方向的范围（高度），提高最小高度以过滤地面
+    float max_y = 2.0;     // 对应全局Z方向的范围（高度）
     float min_z = 0.1;     // 对应全局X方向的最小距离
     float max_z = 5.0;     // 对应全局X方向的最大距离
 
-    // 地面点过滤参数（注意：相机Y轴对应全局-Z轴）
-    const float ground_height_threshold = -0.2;  // 低于此高度（相机坐标系中的Y值）视为地面点
-    const float min_points_threshold = 1000;    // 最小有效点数阈值
+    // 地面点过滤参数
+    const float ground_height_threshold = -0.1;  // 低于此高度视为地面点
+    const float min_points_threshold = 1000;     // 最小有效点数阈值
     
     // 遍历点云
     for (const auto& point : cloud->points) {
@@ -93,17 +95,26 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
             continue;
         }
 
-        // 地面点过滤（相机Y轴对应全局-Z轴，所以小于阈值的是地面点）
-        if (point.y < ground_height_threshold) {
+        // 坐标系转换：
+        // 相机坐标系 -> 全局坐标系
+        // 相机x -> 全局-y
+        // 相机y -> 全局-z
+        // 相机z -> 全局x
+        float global_x = point.z;    // 前向距离
+        float global_y = -point.x;   // 左右位置
+        float global_z = -point.y;   // 高度
+
+        // 地面点过滤（使用全局坐标系的Z轴高度）
+        if (global_z < ground_height_threshold) {
             filtered_ground++;
             continue;
         }
 
         // 统计不同区域的点
         PointStats* current_stats = nullptr;
-        if (std::abs(point.x) < 0.3) {  // 中心区域
+        if (std::abs(global_y) < 0.3) {  // 中心区域
             current_stats = &center_stats;
-        } else if (point.x < -0.3) {    // 左侧区域
+        } else if (global_y < -0.3) {    // 左侧区域
             current_stats = &left_stats;
         } else {                         // 右侧区域
             current_stats = &right_stats;
@@ -111,27 +122,26 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
         
         if (current_stats) {
             current_stats->count++;
-            current_stats->min_dist = std::min(current_stats->min_dist, point.z);
-            current_stats->max_dist = std::max(current_stats->max_dist, point.z);
-            // 注意：这里的height是相机坐标系的Y值，对应全局-Z轴
-            current_stats->min_height = std::min(current_stats->min_height, -point.y);  // 转换为全局坐标系的Z值
-            current_stats->max_height = std::max(current_stats->max_height, -point.y);  // 转换为全局坐标系的Z值
+            current_stats->min_dist = std::min(current_stats->min_dist, global_x);
+            current_stats->max_dist = std::max(current_stats->max_dist, global_x);
+            current_stats->min_height = std::min(current_stats->min_height, global_z);
+            current_stats->max_height = std::max(current_stats->max_height, global_z);
             
             // 将距离四舍五入到厘米级别
-            float rounded_dist = std::round(point.z * 100) / 100;
+            float rounded_dist = std::round(global_x * 100) / 100;
             current_stats->distance_histogram[rounded_dist]++;
             
-            // 将高度四舍五入到厘米级别（注意符号转换）
-            float rounded_height = std::round(-point.y * 100) / 100;  // 转换为全局坐标系的Z值
+            // 将高度四舍五入到厘米级别
+            float rounded_height = std::round(global_z * 100) / 100;
             current_stats->height_histogram[rounded_height]++;
         }
 
         // 检查点是否在感兴趣区域内
-        if (point.x > min_x && point.x < max_x &&     // 左右范围检查
-            point.y > ground_height_threshold &&       // 高度范围检查（过滤地面点）
-            point.z > min_z && point.z < max_z) {     // 前向距离检查
+        if (global_y > min_x && global_y < max_x &&     // 左右范围检查
+            global_z > min_y && global_z < max_y &&     // 高度范围检查
+            global_x > min_z && global_x < max_z) {     // 前向距离检查
             valid_points++;
-            valid_distances.push_back(point.z);
+            valid_distances.push_back(global_x);
         }
     }
     
