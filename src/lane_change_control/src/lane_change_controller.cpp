@@ -64,6 +64,9 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
         float min_dist = std::numeric_limits<float>::max();
         float max_dist = -std::numeric_limits<float>::max();
         std::map<float, int> distance_histogram;  // 用于统计距离分布
+        std::map<float, int> height_histogram;    // 用于统计高度分布
+        float min_height = std::numeric_limits<float>::max();
+        float max_height = -std::numeric_limits<float>::max();
     };
     
     // 划分不同区域统计点的分布
@@ -112,10 +115,16 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
             current_stats->count++;
             current_stats->min_dist = std::min(current_stats->min_dist, point.z);
             current_stats->max_dist = std::max(current_stats->max_dist, point.z);
+            current_stats->min_height = std::min(current_stats->min_height, point.y);
+            current_stats->max_height = std::max(current_stats->max_height, point.y);
             
             // 将距离四舍五入到厘米级别
             float rounded_dist = std::round(point.z * 100) / 100;
             current_stats->distance_histogram[rounded_dist]++;
+            
+            // 将高度四舍五入到厘米级别
+            float rounded_height = std::round(point.y * 100) / 100;
+            current_stats->height_histogram[rounded_height]++;
         }
 
         // 检查点是否在感兴趣区域内
@@ -132,10 +141,12 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
     auto print_region_stats = [](const char* region_name, const PointStats& stats) {
         if (stats.count < 1) return;  // 跳过空区域
         
-        ROS_INFO("%s region: %d points, distance range: %.2f to %.2f m", 
+        ROS_INFO("%s region: %d points, distance range: %.2f to %.2f m, height range: %.2f to %.2f m", 
                 region_name, stats.count, 
                 stats.min_dist != std::numeric_limits<float>::max() ? stats.min_dist : 0,
-                stats.max_dist != -std::numeric_limits<float>::max() ? stats.max_dist : 0);
+                stats.max_dist != -std::numeric_limits<float>::max() ? stats.max_dist : 0,
+                stats.min_height != std::numeric_limits<float>::max() ? stats.min_height : 0,
+                stats.max_height != -std::numeric_limits<float>::max() ? stats.max_height : 0);
         
         // 输出距离直方图中最频繁的几个值
         std::vector<std::pair<float, int>> hist_vec(stats.distance_histogram.begin(), 
@@ -147,6 +158,19 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
         for (int i = 0; i < std::min(5, (int)hist_vec.size()); i++) {
             if (hist_vec[i].second > 100) {  // 只显示数量超过100的点
                 ROS_INFO("  %.2f m: %d points", hist_vec[i].first, hist_vec[i].second);
+            }
+        }
+
+        // 输出高度直方图中最频繁的几个值
+        std::vector<std::pair<float, int>> height_hist_vec(stats.height_histogram.begin(), 
+                                                          stats.height_histogram.end());
+        std::sort(height_hist_vec.begin(), height_hist_vec.end(), 
+                 [](const auto& a, const auto& b) { return a.second > b.second; });
+        
+        ROS_INFO("Most common heights in %s region:", region_name);
+        for (int i = 0; i < std::min(5, (int)height_hist_vec.size()); i++) {
+            if (height_hist_vec[i].second > 100) {  // 只显示数量超过100的点
+                ROS_INFO("  %.2f m: %d points", height_hist_vec[i].first, height_hist_vec[i].second);
             }
         }
     };
