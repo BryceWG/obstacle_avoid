@@ -8,6 +8,7 @@
 #include <pcl/point_types.h>
 #include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
+#include <gazebo_msgs/GetModelState.h>
 
 class LaneChangeController {
 public:
@@ -23,6 +24,10 @@ private:
     ros::Publisher cmd_vel_pub_;
     ros::Publisher debug_pub_;    // 用于发布调试可视化信息
     
+    // 服务客户端
+    ros::ServiceClient model_state_client_;  // 用于设置机器人姿态
+    ros::ServiceClient get_state_client_;       // 用于获取机器人状态
+    
     // TF监听器
     tf::TransformListener tf_listener_;
     
@@ -33,6 +38,7 @@ private:
     double angular_speed_;               // 角速度
     bool changing_lane_;                 // 变道状态标志
     ros::Time start_time_;              // 变道开始时间
+    double current_yaw_;                // 当前航向角
     
     // 回调函数
     void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg);
@@ -41,6 +47,7 @@ private:
     float detectObstacle(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
     void publishMotionCommand();
     void publishDebugMarker(bool obstacle_detected);
+    void setRobotPose(double yaw);  // 设置机器人姿态
 };
 
 #endif // LANE_CHANGE_CONTROLLER_H 

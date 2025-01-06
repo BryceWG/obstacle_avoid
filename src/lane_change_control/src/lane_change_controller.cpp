@@ -1,12 +1,15 @@
 #include "../include/lane_change_controller.h"
 #include <pcl_conversions/pcl_conversions.h>
 #include <visualization_msgs/Marker.h>
+#include <gazebo_msgs/ModelState.h>
+#include <gazebo_msgs/SetModelState.h>
+#include <tf/transform_datatypes.h>
 
 LaneChangeController::LaneChangeController() : changing_lane_(false) {
     // 从参数服务器获取参数，如果没有设置则使用默认值
     nh_.param("obstacle_distance_threshold", obstacle_distance_threshold_, 1.0);
     nh_.param("safe_distance", safe_distance_, 0.5);
-    nh_.param("linear_speed", linear_speed_, 0.2);  // 降低默认速度
+    nh_.param("linear_speed", linear_speed_, 0.2);
     nh_.param("angular_speed", angular_speed_, 0.2);
 
     // 订阅Kinect点云数据
@@ -19,8 +22,13 @@ LaneChangeController::LaneChangeController() : changing_lane_(false) {
     // 发布调试信息
     debug_pub_ = nh_.advertise<visualization_msgs::Marker>("/lane_change_debug", 1);
 
+    // 初始化Gazebo模型状态客户端
+    model_state_client_ = nh_.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
+    get_state_client_ = nh_.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state");
+
     // 初始化起始时间
     start_time_ = ros::Time::now();
+    current_yaw_ = 0.0;  // 初始航向角
     
     ROS_INFO("Lane Change Controller initialized");
 }
@@ -209,45 +217,131 @@ float LaneChangeController::detectObstacle(const pcl::PointCloud<pcl::PointXYZ>:
 }
 
 void LaneChangeController::publishMotionCommand() {
-    geometry_msgs::Twist cmd;
-    
     if (!changing_lane_) {
         // 正常直行：只有前进速度
+        geometry_msgs::Twist cmd;
         cmd.linear.x = linear_speed_;
         cmd.angular.z = 0.0;
+        cmd_vel_pub_.publish(cmd);
     } else {
         // 计算变道过程中的时间
         double elapsed_time = (ros::Time::now() - start_time_).toSec();
         
         if (elapsed_time < 3.0) {  // 变道过程持续3秒
-            // 第一阶段（0-1.5秒）：停止并左转
+            // 使用正弦函数使转向更平滑
+            double phase = elapsed_time / 3.0;  // 0到1的变化
+            double y_offset = 0.0;  // Y方向偏移量
+            
             if (elapsed_time < 1.5) {
-                cmd.linear.x = 0.0;  // 停止前进
-                cmd.angular.z = angular_speed_;  // 左转
-                ROS_INFO("Lane change phase 1: turning left, turn_rate=%.2f rad/s", cmd.angular.z);
+                // 第一阶段：左转并向左移动
+                current_yaw_ = 0.3 * sin(phase * M_PI);  // 最大转向角约17度
+                y_offset = 0.5 * sin(phase * M_PI);  // 最大左偏0.5米
+            } else {
+                // 第二阶段：右转回正
+                double phase2 = (elapsed_time - 1.5) / 1.5;  // 0到1的变化
+                current_yaw_ = 0.3 * sin(M_PI * (1 - phase2));  // 从最大角度转回0
+                y_offset = 0.5;  // 保持左偏0.5米
             }
-            // 第二阶段（1.5-3秒）：停止并右转回来
-            else {
-                cmd.linear.x = 0.0;  // 停止前进
-                cmd.angular.z = -angular_speed_;  // 右转
-                ROS_INFO("Lane change phase 2: turning right, turn_rate=%.2f rad/s", cmd.angular.z);
+            
+            // 获取当前位置
+            gazebo_msgs::GetModelState get_state;
+            get_state.model_name = "simple_robot";
+            get_state.reference_frame = "world";
+            
+            // 设置新的位姿
+            gazebo_msgs::ModelState model_state;
+            model_state.model_name = "simple_robot";
+            model_state.pose.position.x = 3.5 + elapsed_time * linear_speed_;  // 保持前进
+            model_state.pose.position.y = y_offset;  // 左右偏移
+            model_state.pose.position.z = 0.1;  // 保持原有高度
+            
+            // 设置朝向
+            tf::Quaternion q;
+            q.setRPY(0, 0, current_yaw_);
+            model_state.pose.orientation.x = q.x();
+            model_state.pose.orientation.y = q.y();
+            model_state.pose.orientation.z = q.z();
+            model_state.pose.orientation.w = q.w();
+            
+            // 设置速度
+            model_state.twist.linear.x = linear_speed_;
+            model_state.twist.linear.y = 0;
+            model_state.twist.linear.z = 0;
+            model_state.twist.angular.x = 0;
+            model_state.twist.angular.y = 0;
+            model_state.twist.angular.z = 0;
+            
+            model_state.reference_frame = "world";
+            
+            // 应用新的状态
+            gazebo_msgs::SetModelState srv;
+            srv.request.model_state = model_state;
+            
+            if (model_state_client_.call(srv)) {
+                if (srv.response.success) {
+                    ROS_INFO("Lane change: %.0f%%, yaw=%.2f rad, offset=%.2f m", 
+                            phase * 100, current_yaw_, y_offset);
+                } else {
+                    ROS_ERROR("Failed to set robot state: %s", srv.response.status_message.c_str());
+                }
+            } else {
+                ROS_ERROR("Failed to call set_model_state service");
             }
         } else {
             // 变道完成，恢复直行
             changing_lane_ = false;
+            geometry_msgs::Twist cmd;
             cmd.linear.x = linear_speed_;
             cmd.angular.z = 0.0;
+            cmd_vel_pub_.publish(cmd);
             ROS_INFO("Lane change completed, resuming forward motion");
         }
     }
+}
+
+void LaneChangeController::setRobotPose(double yaw) {
+    gazebo_msgs::SetModelState srv;
+    gazebo_msgs::ModelState model_state;
     
-    // 确保其他速度分量为0
-    cmd.linear.y = 0.0;
-    cmd.linear.z = 0.0;
-    cmd.angular.x = 0.0;
-    cmd.angular.y = 0.0;
+    // 设置模型名称
+    model_state.model_name = "simple_robot";
     
-    cmd_vel_pub_.publish(cmd);
+    // 保持当前位置不变，只改变朝向
+    model_state.pose.position.x = 0.0;  // 这里可以根据需要设置位置
+    model_state.pose.position.y = 0.0;
+    model_state.pose.position.z = 0.0;
+    
+    // 设置朝向（欧拉角转四元数）
+    tf::Quaternion q;
+    q.setRPY(0, 0, yaw);  // Roll=0, Pitch=0, 只设置Yaw
+    model_state.pose.orientation.x = q.x();
+    model_state.pose.orientation.y = q.y();
+    model_state.pose.orientation.z = q.z();
+    model_state.pose.orientation.w = q.w();
+    
+    // 设置速度为0
+    model_state.twist.linear.x = 0;
+    model_state.twist.linear.y = 0;
+    model_state.twist.linear.z = 0;
+    model_state.twist.angular.x = 0;
+    model_state.twist.angular.y = 0;
+    model_state.twist.angular.z = 0;
+    
+    // 设置参考坐标系
+    model_state.reference_frame = "world";
+    
+    srv.request.model_state = model_state;
+    
+    // 调用服务
+    if (model_state_client_.call(srv)) {
+        if (srv.response.success) {
+            ROS_INFO("Successfully set robot pose, yaw = %.2f", yaw);
+        } else {
+            ROS_ERROR("Failed to set robot pose: %s", srv.response.status_message.c_str());
+        }
+    } else {
+        ROS_ERROR("Failed to call set_model_state service");
+    }
 }
 
 void LaneChangeController::publishDebugMarker(bool obstacle_detected) {
