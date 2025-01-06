@@ -8,20 +8,24 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   tf
   pcl_ros
+  cv_bridge
+  image_transport
 )
 
 find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp sensor_msgs geometry_msgs nav_msgs tf pcl_ros
+  CATKIN_DEPENDS roscpp sensor_msgs geometry_msgs nav_msgs tf pcl_ros cv_bridge image_transport
 )
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 add_executable(lane_change_node 
@@ -32,6 +36,7 @@ add_executable(lane_change_node
 target_link_libraries(lane_change_node
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 # 安装目标
@@ -57,4 +62,4 @@ install(DIRECTORY rviz/
 # 安装URDF文件
 install(DIRECTORY urdf/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/urdf
-) 
+)
