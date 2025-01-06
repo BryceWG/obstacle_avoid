@@ -212,7 +212,7 @@ void LaneChangeController::publishMotionCommand() {
     geometry_msgs::Twist cmd;
     
     if (!changing_lane_) {
-        // 正常直行
+        // 正常直行：只有前进速度
         cmd.linear.x = linear_speed_;
         cmd.angular.z = 0.0;
     } else {
@@ -220,22 +220,24 @@ void LaneChangeController::publishMotionCommand() {
         double elapsed_time = (ros::Time::now() - start_time_).toSec();
         
         if (elapsed_time < 3.0) {  // 变道过程持续3秒
-            // 使用正弦函数使转向更平滑
-            double phase = elapsed_time / 3.0;  // 0到1的变化
-            double turn_rate = sin(phase * M_PI) * angular_speed_;
-            
-            // 在转向时适当降低前进速度
-            cmd.linear.x = linear_speed_ * 0.8;  // 降低到80%的速度
-            cmd.angular.z = turn_rate;
-            
-            ROS_INFO("Lane change: %.0f%%, speed=%.2f m/s, turn=%.2f rad/s", 
-                    phase * 100, cmd.linear.x, cmd.angular.z);
+            // 第一阶段（0-1.5秒）：停止并左转
+            if (elapsed_time < 1.5) {
+                cmd.linear.x = 0.0;  // 停止前进
+                cmd.angular.z = angular_speed_;  // 左转
+                ROS_INFO("Lane change phase 1: turning left, turn_rate=%.2f rad/s", cmd.angular.z);
+            }
+            // 第二阶段（1.5-3秒）：停止并右转回来
+            else {
+                cmd.linear.x = 0.0;  // 停止前进
+                cmd.angular.z = -angular_speed_;  // 右转
+                ROS_INFO("Lane change phase 2: turning right, turn_rate=%.2f rad/s", cmd.angular.z);
+            }
         } else {
-            // 变道完成
+            // 变道完成，恢复直行
             changing_lane_ = false;
             cmd.linear.x = linear_speed_;
             cmd.angular.z = 0.0;
-            ROS_INFO("Lane change completed");
+            ROS_INFO("Lane change completed, resuming forward motion");
         }
     }
     
