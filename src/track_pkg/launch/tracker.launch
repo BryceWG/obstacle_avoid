@@ -6,12 +6,8 @@
     <!-- 启动Kinect2相机 -->
     <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch" />
 
-    <!-- Detection node -->
-    <node pkg="riki_line_follower" name="detection" type="detect" cwd="node" output="screen">
-    </node>
-
-    <!-- Robot commands node -->
-    <node pkg="riki_line_follower" name="Velocity" type="navig" cwd="node" output="screen">
+    <!-- 启动目标跟踪节点 -->
+    <node pkg="track_pkg" name="tracker" type="kcf_tracker" output="screen">
     </node>
 
 </launch>
