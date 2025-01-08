@@ -17,9 +17,9 @@
 
 static const std::string RGB_WINDOW = "RGB Image window";
 
-#define Max_linear_speed 0.5
+#define Max_linear_speed 0.2
 #define Min_linear_speed 0
-#define Max_rotation_speed 0.75
+#define Max_rotation_speed 0.5
 
 // 添加面积比例阈值
 #define CLOSER_THRESHOLD 1.2
