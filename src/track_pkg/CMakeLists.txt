@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   geometry_msgs
+  usb_cam
 )
 
 find_package(OpenCV REQUIRED)
@@ -19,6 +20,7 @@ ADD_DEFINITIONS("-std=c++0x -O3")
 endif(NOT WIN32)
 
 catkin_package(
+  CATKIN_DEPENDS roscpp rospy std_msgs cv_bridge image_transport usb_cam
 )
 
 include_directories(
