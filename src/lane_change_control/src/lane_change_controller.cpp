@@ -3,9 +3,9 @@
 
 LaneChangeController::LaneChangeController() : changing_lane_(false) {
     // 从参数服务器获取参数
-    nh_.param("linear_speed", linear_speed_, 0.2);
-    nh_.param("max_angular_speed", max_angular_speed_, 0.3);
-    nh_.param("lane_width", lane_width_, 0.6);     // 默认车道宽度0.6米
+    nh_.param("linear_speed", linear_speed_, 0.4);
+    nh_.param("max_angular_speed", max_angular_speed_, 0.6);
+    nh_.param("lane_width", lane_width_, 0.8);     // 默认车道宽度0.6米
     nh_.param("total_time", total_time_, 5.0);     // 默认变道总时长5秒
     
     // 发布速度命令
