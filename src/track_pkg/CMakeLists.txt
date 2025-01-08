@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   roscpp
+  rospy
   sensor_msgs
   std_msgs
   geometry_msgs
@@ -27,17 +28,17 @@ include_directories(
   include ${catkin_INCLUDE_DIRS}
 )
 
-link_directories ( ${OpenCV_LIB_DIR} )
+link_directories(${OpenCV_LIB_DIR})
 MESSAGE(STATUS "OpenCV_LIB_DIR: ${OpenCV_LIB_DIR}")
 
-include_directories ( ${OpenCV_INCLUDE_DIRS} )
+include_directories(${OpenCV_INCLUDE_DIRS})
 MESSAGE(STATUS "OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}")
 
-INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR}/)
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/)
 include_directories(${CMAKE_SOURCE_DIR}/src/)
 
 FILE(GLOB_RECURSE sourcefiles "src/*.cpp")
 
-add_executable( kcf_node ${sourcefiles})
-target_link_libraries( kcf_node ${OpenCV_LIBRARIES} ${OpenCV_LIBS} ${catkin_LIBRARIES})
+add_executable(runtracker ${sourcefiles})
+target_link_libraries(runtracker ${OpenCV_LIBRARIES} ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
