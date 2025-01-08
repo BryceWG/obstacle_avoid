@@ -61,6 +61,10 @@ class ImageConverter
 
     KCFTracker tracker;
 
+    float max_rotation_speed;
+    int image_center_x;      // 图像中心x坐标
+    int center_threshold;    // 中心区域阈值
+
 public:
     ImageConverter()
         : it_(nh_), tracker(HOG, FIXEDWINDOW, MULTISCALE, LAB)
@@ -97,6 +101,10 @@ public:
         LAB = false;
 
         cv::namedWindow(RGB_WINDOW);
+
+        // 初始化转向控制参数
+        max_rotation_speed = Max_rotation_speed;
+        center_threshold = 30;  // 中心区域阈值，可以通过参数服务器配置
     }
 
     ~ImageConverter()
@@ -163,23 +171,45 @@ public:
                 cmd.linear.x = linear_speed;
             }
 
-            // 计算转向
-            int center_x = result.x + result.width/2;
-            if(center_x < ERROR_OFFSET_X_left1) 
-                cmd.angular.z = Max_rotation_speed;
-            else if(center_x > ERROR_OFFSET_X_left1 && center_x < ERROR_OFFSET_X_left2)
-                cmd.angular.z = -k_rotation_speed * center_x + h_rotation_speed_left;
-            else if(center_x > ERROR_OFFSET_X_right1 && center_x < ERROR_OFFSET_X_right2)
-                cmd.angular.z = -k_rotation_speed * center_x + h_rotation_speed_right;
-            else if(center_x > ERROR_OFFSET_X_right2)
-                cmd.angular.z = -Max_rotation_speed;
-            else 
+            // 计算目标中心点和图像中心点
+            int target_center_x = result.x + result.width/2;
+            image_center_x = rgbimage.cols/2;
+            
+            // 计算偏差
+            int error = target_center_x - image_center_x;
+            
+            // 根据偏差计算转向速度
+            if (abs(error) < center_threshold) {
+                // 在中心区域内，不需要转向
                 cmd.angular.z = 0;
+            } else {
+                // 根据偏差计算转向速度，使用比例控制
+                cmd.angular.z = -k_rotation_speed * error;
+                
+                // 限制最大转向速度
+                if (cmd.angular.z > max_rotation_speed) {
+                    cmd.angular.z = max_rotation_speed;
+                } else if (cmd.angular.z < -max_rotation_speed) {
+                    cmd.angular.z = -max_rotation_speed;
+                }
+            }
+
+            // 添加调试信息
+            ROS_INFO("Target center: %d, Image center: %d, Error: %d, Angular: %.2f", 
+                     target_center_x, image_center_x, error, cmd.angular.z);
 
             cmd_vel_pub_.publish(cmd);
         }
         else
             cv::rectangle(rgbimage, selectRect, cv::Scalar(255, 0, 0), 2, 8, 0);
+
+        // 绘制图像中心线（用于调试）
+        if (rgbimage.cols > 0) {
+            cv::line(rgbimage, 
+                    cv::Point(rgbimage.cols/2, 0),
+                    cv::Point(rgbimage.cols/2, rgbimage.rows),
+                    cv::Scalar(0, 255, 0), 1);
+        }
 
         cv::imshow(RGB_WINDOW, rgbimage);
         cv::waitKey(1);
