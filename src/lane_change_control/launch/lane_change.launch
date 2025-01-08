@@ -3,14 +3,22 @@
     <!-- 启动底盘驱动 -->
     <include file="$(find autolabor_pro1_driver)/launch/driver.launch" />
 
-    <!-- 启动Kinect2相机 -->
-    <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch" />
+    <!-- 启动USB摄像头 -->
+    <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+        <param name="video_device" value="/dev/video0" />
+        <param name="image_width" value="640" />
+        <param name="image_height" value="480" />
+        <param name="pixel_format" value="yuyv" />
+        <param name="camera_frame_id" value="usb_cam" />
+        <param name="io_method" value="mmap"/>
+    </node>
 
     <!-- 加载参数 -->
-    <param name="obstacle_distance_threshold" value="1.0" />
-    <param name="safe_distance" value="0.5" />
+    <param name="obstacle_threshold" value="5000.0" />  <!-- 障碍物面积阈值 -->
+    <param name="min_obstacle_area" value="1000" />    <!-- 最小障碍物面积 -->
     <param name="linear_speed" value="0.2" />
     <param name="angular_speed" value="0.2" />
+    <param name="camera_topic" value="/usb_cam/image_raw" />
 
     <!-- 启动变道控制节点 -->
     <node name="lane_change_controller" pkg="lane_change_control" type="lane_change_node" output="screen">
