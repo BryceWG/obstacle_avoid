@@ -37,13 +37,21 @@ private:
     cv::Scalar obstacle_color_high_;    // 障碍物颜色范围上限
     int min_obstacle_area_;             // 最小障碍物面积
     
+    // 可视化窗口名称
+    static const std::string WINDOW_ORIGINAL;
+    static const std::string WINDOW_PROCESSED;
+    static const std::string WINDOW_DEBUG;
+    bool show_debug_windows_;           // 是否显示调试窗口
+    
     // 回调函数
     void imageCallback(const sensor_msgs::ImageConstPtr& img_msg);
     
     // 辅助函数
-    bool detectObstacle(const cv::Mat& rgb_image);
+    bool detectObstacle(const cv::Mat& rgb_image, std::vector<cv::Rect>& detected_obstacles);
     void publishMotionCommand();
     cv::Mat preprocessImage(const cv::Mat& input);
+    void showDebugInfo(const cv::Mat& original, const cv::Mat& processed, 
+                      const std::vector<cv::Rect>& obstacles);
 };
 
 #endif // LANE_CHANGE_CONTROLLER_H 
