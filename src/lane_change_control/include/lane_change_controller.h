@@ -2,61 +2,42 @@
 #define LANE_CHANGE_CONTROLLER_H
 
 #include <ros/ros.h>
-#include <sensor_msgs/Image.h>
 #include <geometry_msgs/Twist.h>
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
 
 class LaneChangeController {
 public:
     LaneChangeController();
     ~LaneChangeController();
 
+    // 启动变道动作
+    void startLaneChange();
+    
+    // 运行控制循环
+    void run();
+
 private:
     // ROS节点句柄
     ros::NodeHandle nh_;
-    
-    // 订阅者和发布者
-    ros::Subscriber image_sub_;
     ros::Publisher cmd_vel_pub_;
     
-    // 参数
-    double obstacle_threshold_;          // 障碍物检测阈值（像素面积）
-    double linear_speed_;                // 线速度
-    double angular_speed_;               // 角速度
-    bool changing_lane_;                 // 变道状态标志
-    ros::Time start_time_;              // 变道开始时间
+    // 运动控制参数
+    double linear_speed_;        // 基础线速度
+    double max_angular_speed_;   // 最大角速度
+    double lane_width_;          // 车道宽度
     
-    // 障碍物检测相关
-    static const int DETECTION_THRESHOLD = 3;  // 连续检测阈值
-    int detection_count_;                // 连续检测计数
-    bool last_detection_;               // 上次检测结果
+    // 变道状态
+    bool changing_lane_;         // 变道状态标志
+    ros::Time start_time_;      // 变道开始时间
+    double total_time_;         // 变道总时长
     
-    // 图像处理参数
-    cv::Scalar obstacle_color_low_;     // 障碍物颜色范围下限
-    cv::Scalar obstacle_color_high_;    // 障碍物颜色范围上限
-    int min_obstacle_area_;             // 最小障碍物面积
-    
-    // HSV阈值调节的整型变量
-    int h_low_, s_low_, v_low_;
-    int h_high_, s_high_, v_high_;
-    
-    // 可视化窗口名称
-    static const std::string WINDOW_ORIGINAL;
-    static const std::string WINDOW_PROCESSED;
-    static const std::string WINDOW_DEBUG;
-    bool show_debug_windows_;           // 是否显示调试窗口
-    
-    // 回调函数
-    void imageCallback(const sensor_msgs::ImageConstPtr& img_msg);
+    // 变道阶段时间参数（占总时长的比例）
+    static constexpr double STAGE1_RATIO = 0.3;  // 转出阶段
+    static constexpr double STAGE2_RATIO = 0.4;  // 直行阶段
+    static constexpr double STAGE3_RATIO = 0.3;  // 回正阶段
     
     // 辅助函数
-    bool detectObstacle(const cv::Mat& rgb_image, std::vector<cv::Rect>& detected_obstacles);
-    void publishMotionCommand();
-    cv::Mat preprocessImage(const cv::Mat& input);
-    void showDebugInfo(const cv::Mat& original, const cv::Mat& processed, 
-                      const std::vector<cv::Rect>& obstacles);
-    void updateHSVThresholds();  // 更新HSV阈值
+    void publishMotionCommand(double linear_x, double angular_z);
+    double calculateAngularSpeed(double elapsed_time);
 };
 
 #endif // LANE_CHANGE_CONTROLLER_H 
