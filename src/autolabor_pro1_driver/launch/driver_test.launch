@@ -1,6 +1,6 @@
 <launch>
     <node name="driver" pkg="autolabor_pro1_driver" type="sim_autolabor_pro1_driver" output="screen">
-	<param name="port_name" value="/dev/ttyUSB0" />
+	<param name="port_name" value="/dev/autolabor_pro1" />
 	<param name="baud_rate" value="115200" />
 	<param name="control_rate" value="10" />
 	<param name="pid_rate" value="50" />

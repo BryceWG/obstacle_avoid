@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(autolabor_pro1_driver)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -14,7 +14,10 @@ add_message_files(
 )
 
 generate_messages()
-generate_dynamic_reconfigure_options(cfg/SimAutolaborDriver.cfg)
+generate_dynamic_reconfigure_options(
+  cfg/SimAutolaborDriver.cfg
+  cfg/AutolaborModel.cfg
+)
 
 catkin_package(CATKIN_DEPENDS roscpp tf message_runtime)
 
