@@ -13,9 +13,13 @@ LaneChangeController::LaneChangeController() : changing_lane_(false), detection_
     nh_.param("min_obstacle_area", min_obstacle_area_, 1000);  // 最小障碍物面积
     nh_.param("show_debug_windows", show_debug_windows_, true);  // 默认显示调试窗口
 
-    // 设置障碍物颜色范围（默认为红色）
-    obstacle_color_low_ = cv::Scalar(0, 100, 100);   // HSV空间
-    obstacle_color_high_ = cv::Scalar(10, 255, 255);
+    // 初始化HSV阈值（默认为红色）
+    h_low_ = 0;    s_low_ = 100;  v_low_ = 100;
+    h_high_ = 10;  s_high_ = 255; v_high_ = 255;
+    
+    // 更新Scalar对象
+    obstacle_color_low_ = cv::Scalar(h_low_, s_low_, v_low_);
+    obstacle_color_high_ = cv::Scalar(h_high_, s_high_, v_high_);
 
     // 订阅USB摄像头图像
     std::string camera_topic;
@@ -31,12 +35,12 @@ LaneChangeController::LaneChangeController() : changing_lane_(false), detection_
         cv::namedWindow(WINDOW_DEBUG, cv::WINDOW_AUTOSIZE);
         
         // 创建HSV阈值调节滑块
-        cv::createTrackbar("H min", WINDOW_DEBUG, &obstacle_color_low_.val[0], 180);
-        cv::createTrackbar("S min", WINDOW_DEBUG, &obstacle_color_low_.val[1], 255);
-        cv::createTrackbar("V min", WINDOW_DEBUG, &obstacle_color_low_.val[2], 255);
-        cv::createTrackbar("H max", WINDOW_DEBUG, &obstacle_color_high_.val[0], 180);
-        cv::createTrackbar("S max", WINDOW_DEBUG, &obstacle_color_high_.val[1], 255);
-        cv::createTrackbar("V max", WINDOW_DEBUG, &obstacle_color_high_.val[2], 255);
+        cv::createTrackbar("H min", WINDOW_DEBUG, &h_low_, 180);
+        cv::createTrackbar("S min", WINDOW_DEBUG, &s_low_, 255);
+        cv::createTrackbar("V min", WINDOW_DEBUG, &v_low_, 255);
+        cv::createTrackbar("H max", WINDOW_DEBUG, &h_high_, 180);
+        cv::createTrackbar("S max", WINDOW_DEBUG, &s_high_, 255);
+        cv::createTrackbar("V max", WINDOW_DEBUG, &v_high_, 255);
     }
 
     ROS_INFO("Lane Change Controller initialized");
@@ -102,11 +106,21 @@ void LaneChangeController::imageCallback(const sensor_msgs::ImageConstPtr& img_m
     publishMotionCommand();
 }
 
+void LaneChangeController::updateHSVThresholds() {
+    obstacle_color_low_ = cv::Scalar(h_low_, s_low_, v_low_);
+    obstacle_color_high_ = cv::Scalar(h_high_, s_high_, v_high_);
+}
+
 cv::Mat LaneChangeController::preprocessImage(const cv::Mat& input) {
     cv::Mat hsv, mask;
     
     // 转换到HSV颜色空间
     cv::cvtColor(input, hsv, cv::COLOR_BGR2HSV);
+    
+    // 更新HSV阈值
+    if (show_debug_windows_) {
+        updateHSVThresholds();
+    }
     
     // 创建掩码
     cv::inRange(hsv, obstacle_color_low_, obstacle_color_high_, mask);

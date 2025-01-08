@@ -37,6 +37,10 @@ private:
     cv::Scalar obstacle_color_high_;    // 障碍物颜色范围上限
     int min_obstacle_area_;             // 最小障碍物面积
     
+    // HSV阈值调节的整型变量
+    int h_low_, s_low_, v_low_;
+    int h_high_, s_high_, v_high_;
+    
     // 可视化窗口名称
     static const std::string WINDOW_ORIGINAL;
     static const std::string WINDOW_PROCESSED;
@@ -52,6 +56,7 @@ private:
     cv::Mat preprocessImage(const cv::Mat& input);
     void showDebugInfo(const cv::Mat& original, const cv::Mat& processed, 
                       const std::vector<cv::Rect>& obstacles);
+    void updateHSVThresholds();  // 更新HSV阈值
 };
 
 #endif // LANE_CHANGE_CONTROLLER_H 
